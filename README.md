@@ -1,3 +1,4 @@
+#####KOPIERT VON OSS######
 # xml_export
 Projekt für Lernfeld 12 FIAW
 
@@ -18,5 +19,6 @@ OSS XML Datei(en) laden, ggf. mehrere, anzeigen, filtern exportieren
 4. Meilenstein: Export  und Test (4. Block)
 
 Vorträge im 4. und 5. Block
+#####KOPIERT VON OSS######
 
 Jan Schwarz, Alexander Houpert
