@@ -1,6 +1,3 @@
-
-
-
 import xml.etree.ElementTree as ET
 import tkinter as tk
 import re
@@ -20,7 +17,6 @@ def lese_xml_datei(dateipfad):
     except ET.ParseError:
         print(f"Fehler: Fehler beim Parsen der XML-Datei '{dateipfad}'.")
         return None
-
 
 def waehle_datei():
     # Parse XML
@@ -113,15 +109,18 @@ def get_selected_items():
                 var = tk.StringVar(value="Wählen...")
                 combo = ttk.Combobox(details_window, textvariable=var, values=answer_options, state="readonly")
                 combo.grid(row=row, column=1, padx=5, pady=2)
+                # user_answers[item_id][SubquestionText] = (Variable, korrekte Antwort)
                 user_answers[item_id][subquestion_text] = (var, subquestion.find('answer/text').text)
                 row += 1
 
-        # Multiple-Choice-Fragen
+        # Multiple-Choice-Fragen (jetzt mit Checkbuttons)
         elif question_type == "multichoice":
             tk.Label(details_window, text="Antwortmöglichkeiten:", font=("Arial", 10, "bold")).grid(row=row, column=0, sticky="w", padx=5, pady=2)
             row += 1
 
-            user_answers[item_id] = tk.StringVar()  # Nutzer-Antwort speichern
+            # Lege ein Dictionary an, das für jede Antwort die (BooleanVar, Korrektheit) speichert
+            user_answers[item_id] = {}
+
             for answer in frage_element.findall('answer'):
                 answer_text_elem = answer.find('text')
                 answer_text = remove_html_tags(answer_text_elem.text.strip()) if answer_text_elem is not None else "—"
@@ -129,19 +128,23 @@ def get_selected_items():
                 is_correct = answer.get("fraction")  # Richtig oder falsch
                 correct = float(is_correct) > 0 if is_correct else False
 
-                rb = tk.Radiobutton(details_window, text=answer_text, variable=user_answers[item_id], value=answer_text)
-                rb.grid(row=row, column=0, sticky="w", padx=5, pady=2)
+                # Für diese Antwort eine BooleanVar erstellen
+                var = tk.BooleanVar(value=False)
 
-                # Richtig-Falsch speichern
-                user_answers[item_id + answer_text] = correct  
+                cb = tk.Checkbutton(details_window, text=answer_text, variable=var)
+                cb.grid(row=row, column=0, sticky="w", padx=5, pady=2)
+
+                # Im Dictionary speichern:
+                # user_answers[item_id][Antworttext] = (CheckbuttonVar, IstKorrekt?)
+                user_answers[item_id][answer_text] = (var, correct)
                 row += 1
-        
-        #truefalse-Fragen
+
+        # True/False-Fragen (weiterhin Radiobutton, da typischerweise exklusiv)
         elif question_type == "truefalse":
             tk.Label(details_window, text="Antwortmöglichkeiten:", font=("Arial", 10, "bold")).grid(row=row, column=0, sticky="w", padx=5, pady=2)
             row += 1
 
-            user_answers[item_id] = tk.StringVar()  # Nutzer-Antwort speichern
+            user_answers[item_id] = tk.StringVar(value="__NONE__")  # Nutzer-Antwort speichern
             for answer in frage_element.findall('answer'):
                 answer_text_elem = answer.find('text')
                 answer_text = remove_html_tags(answer_text_elem.text) if answer_text_elem is not None else "—"
@@ -152,6 +155,7 @@ def get_selected_items():
                 rb.grid(row=row, column=0, sticky="w", padx=5, pady=2)
                 
                 # Richtig-Falsch speichern
+                # Hier mit Key = q_id + answer_text
                 user_answers[item_id + answer_text] = correct
                 row += 1
 
@@ -165,18 +169,43 @@ def get_selected_items():
         falsch = 0
 
         for q_id, answers in user_answers.items():
-            if isinstance(answers, dict):  # Matching
+            # Matching-Fragen: answers = {subquestion_text: (StringVar, correct_answer)}
+            if isinstance(answers, dict) and any(isinstance(val, tuple) and isinstance(val[0], tk.StringVar) for val in answers.values()):
+                # => Matching
                 for text, (var, correct_answer) in answers.items():
                     if var.get() == correct_answer:
                         richtig += 1
                     else:
                         falsch += 1
-            elif isinstance(answers, tk.StringVar):  # Multiple-Choice
+
+            # Multiple-Choice-Fragen: answers = {answer_text: (BooleanVar, correct_bool)}
+            elif isinstance(answers, dict) and any(isinstance(val, tuple) and isinstance(val[0], tk.BooleanVar) for val in answers.values()):
+                # => Multiple Choice
+                for ans_text, (var, correct_bool) in answers.items():
+                    # Wenn der User diese Option ausgewählt hat
+                    if var.get():
+                        if correct_bool:
+                            richtig += 1
+                        else:
+                            falsch += 1
+                    else:
+                        # Falls der User sie nicht markiert hat, sie aber eigentlich korrekt wäre,
+                        # könnte man entscheiden, das als "falsch" zu werten oder nicht – je nach Regelwerk
+                        if correct_bool:
+                            falsch += 1
+
+            # True/False: answers = tk.StringVar
+            elif isinstance(answers, tk.StringVar):
                 user_choice = answers.get()
-                if user_answers[q_id + user_choice]:  # Richtig?
-                    richtig += 1
-                else:
+                # Falls user_choice == "__NONE__", hat noch niemand geklickt => das wäre "keine Antwort"
+                if user_choice == "__NONE__":
                     falsch += 1
+                else:
+                    # user_answers[q_id + user_choice] enthält das bool, ob das gewählte correct ist
+                    if user_answers[q_id + user_choice]:
+                        richtig += 1
+                    else:
+                        falsch += 1
 
         ergebnis_label.config(text=f"Ergebnis: {richtig} richtig, {falsch} falsch")
 
@@ -191,7 +220,6 @@ def remove_html_tags(text):
     text = text.replace("<br>", "\n")  # HTML-Zeilenumbruch → echtes \n
     clean_text = re.sub(r'<.*?>', '', text)  # Entfernt restliche Tags
     return clean_text.strip()
-
 
 root = tk.Tk()
 root.title("Quiz Fragen")
@@ -209,6 +237,3 @@ select_button = ttk.Button(root, text="Auswahl anzeigen", command=get_selected_i
 select_button.pack(pady=10)
 
 root.mainloop()
-
-
-
