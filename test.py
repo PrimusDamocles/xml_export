@@ -50,7 +50,44 @@ def waehle_datei():
                     )
     else:
         print("Keine Datei ausgewählt.")
+        
+def export_fragen():
+    """Exportiert die ausgewählten Fragen in eine XML-Datei"""
+    # Hole die ausgewählten Einträge aus dem TreeView
+    selected = tree_display.selection()
+    if not selected:
+        print("Keine Fragen ausgewählt.")  # Falls keine Auswahl getroffen wurde
+        return
 
+    # Öffnet einen Dialog, um den Speicherort der XML-Datei auszuwählen
+    dateipfad = filedialog.asksaveasfilename(
+        defaultextension=".xml",  # Standard-Dateiendung
+        filetypes=[("XML-Dateien", "*.xml")],  # Nur XML-Dateien erlauben
+        title="XML-Datei speichern"  # Titel des Dialogs
+    )
+    if dateipfad:
+        # Erstelle das Wurzelelement <quiz> für die neue XML-Datei
+        root_element = ET.Element("quiz")
+        for item_id in selected:
+            # Hole den Index der Frage aus der Auswahl
+            question_index = int(item_id)
+            # Hole das entsprechende Frage-Element aus der globalen Liste
+            frage_element = all_questions[question_index]
+            # Füge das Frage-Element als Kind zum Wurzelelement hinzu
+            root_element.append(frage_element)
+
+        # Erstelle einen neuen XML-Baum mit dem Wurzelelement
+        tree = ET.ElementTree(root_element)
+        try:
+            # Schreibe den XML-Baum in die ausgewählte Datei
+            tree.write(dateipfad, encoding="utf-8", xml_declaration=True)
+            print(f"Fragen erfolgreich exportiert nach '{dateipfad}'")  # Erfolgsmeldung
+        except Exception as e:
+            # Fehlerbehandlung beim Schreiben der Datei
+            print(f"Fehler beim Exportieren: {e}")
+    else:
+        print("Keine Datei ausgewählt.")  # Falls der Nutzer den Dialog abbricht
+        
 def get_selected_items():
     selected = tree_display.selection()
     if not selected:
@@ -226,6 +263,10 @@ root.title("Quiz Fragen")
 
 waehl_button = ttk.Button(root, text="XML-Datei auswählen", command=waehle_datei)
 waehl_button.pack(pady=10, side="top")
+waehl_button = ttk.Button(root, text="Fragen exportieren", command=export_fragen)
+waehl_button.pack(pady=10, side="bottom")
+waehl_button = ttk.Button(root, text="Beenden", command=root.quit)
+waehl_button.pack(pady=10, side="bottom")
 
 columns = ("Name", "Kategorie")
 tree_display = ttk.Treeview(root, columns=columns, show="headings")
