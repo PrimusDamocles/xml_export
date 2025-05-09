@@ -1,0 +1,29 @@
+<quiz>
+  <question type="truefalse">
+    <name><text>Frage 1</text></name>
+    <questiontext format="html"><text><![CDATA[<p>Python ist eine Programmiersprache?</p>]]></text></questiontext>
+    <answer fraction="100"><text>Wahr</text></answer>
+    <answer fraction="0"><text>Falsch</text></answer>
+  </question>
+
+  <question type="multichoice">
+    <name><text>Frage 2</text></name>
+    <questiontext format="html"><text><![CDATA[<p>Welche sind Programmiersprachen?</p>]]></text></questiontext>
+    <answer fraction="100"><text>Python</text></answer>
+    <answer fraction="0"><text>HTML</text></answer>
+    <answer fraction="100"><text>Java</text></answer>
+  </question>
+
+  <question type="matching">
+    <name><text>Frage 3</text></name>
+    <questiontext format="html"><text><![CDATA[<p>Ordne zu:</p>]]></text></questiontext>
+    <subquestion>
+      <text><![CDATA[<p>Python</p>]]></text>
+      <answer><text>Programmiersprache</text></answer>
+    </subquestion>
+    <subquestion>
+      <text><![CDATA[<p>Photoshop</p>]]></text>
+      <answer><text>Bildbearbeitung</text></answer>
+    </subquestion>
+  </question>
+</quiz>
